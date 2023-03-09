@@ -1,8 +1,8 @@
 class AppBase {
-    static DOMAIN = location.origin;
+    static DOMAIN_SERVER = 'http://localhost:3300';
 
-    static API_CUSTOMER = this.DOMAIN  + "/api/customers";
-    static API_DEPOSIT = this.DOMAIN + "/api/deposits";
-    static API_WITHDRAW = this.DOMAIN + "/api/withdraws";
-    static API_TRANSFER = this.DOMAIN + "/api/transfers";
+    static API_SERVER = this.DOMAIN_SERVER  + '';
+    static API_CUSTOMER = this.API_SERVER + '/customers';
+    static API_DEPOSIT = this.API_SERVER + '/deposits';
+    static API_TRANSFER = this.API_SERVER + '/transfers';
 }
