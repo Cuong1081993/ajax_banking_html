@@ -42,6 +42,9 @@
                         <th class="text-center">Email</th>
                         <th class="text-center">Phone</th>
                         <th class="text-center">Address</th>
+                        <th class="text-center">Province</th>
+                        <th class="text-center">District</th>
+                        <th class="text-center">Ward</th>
                         <th class="text-center">Balance</th>
                         <th colspan="5" style="text-align: center;">Action</th>
                     </tr>
@@ -76,6 +79,18 @@
                                 </div>
                             </div>
                             <div class="row mt-3">
+                                <div class="col-lg-4">
+                                    <label>Province</label>
+                                    <select class="form-select" id="provinceCre"></select>
+                                </div>
+                                <div class="col-lg-4">
+                                    <label>District</label>
+                                    <select class="form-select" id="districtCre"></select>
+                                </div>
+                                <div class="col-lg-4">
+                                    <label>Ward</label>
+                                    <select class="form-select" id="wardCre"></select>
+                                </div>
                                 <div class="col-sm-6">
                                     <label>Address</label>
                                     <input type="text" name="addressCre" id="addressCre" class="form-control">
@@ -299,7 +314,7 @@
                 insertDeposit: AppBase.API_DEPOSIT,
                 insertTransfer: AppBase.API_TRANSFER,
                 incrementBalance: AppBase.API_CUSTOMER,
-                decrementBalance : AppBase.API_CUSTOMER
+                decrementBalance: AppBase.API_CUSTOMER
             },
             elements: {},
             loadData: {},
@@ -316,9 +331,10 @@
                 type: 'GET',
                 url: page.urls.getAllCustomers + '?deleted=0'
             })
-                .done(data => {
-                    $.each(data, (i, item) => {
-                        let str = renderCustomer(item);
+                .done((data) => {
+                    $.each(data, (i, customers) => {
+            
+                        let str = renderCustomer(customers);
                         $('table tbody').prepend(str);
                     })
                     addEventUpdateClick();
@@ -359,24 +375,153 @@
         page.dialogs.elements.transactionAmountTrf = $('#transactionAmountTrf');
         page.dialogs.elements.btnTransfer = $('#btnTransfer');
 
+        page.loadData.getAllProvinces = () => {
+            $.ajax({
+                type: "GET",
+                url: "https://vapi.vnappmob.com/api/province/"
+            })
+                .done((data) => {
+                    $.each(data.results, (i, item) => {
+                        let str = `<option value ='${item.province_id}'>${item.province_name}</option>`;
+                        $('#provinceCre').append(str);
+                    })
+                    let str = `<option value="0" selected>-- Please selected --</option>`;
+                    $('#provinceCre').prepend(str);
+
+
+                    page.commands.addEventChangeProvince();
+
+                })
+                .fail((error) => {
+                    Swal.fire({
+                        position: 'center',
+                        icon: 'error',
+                        title: "Can't get all provinces"
+                    })
+                })
+        }
+        
+        page.commands.addEventChangeProvince = () => {
+            let removed = false;
+
+            $('#provinceCre').on('change', function () {
+                $('#wardCre').empty();
+
+                let str = `<option value="0" selected>-- Please selected --</option>`;
+                $('#wardCre').prepend(str);
+
+                let provinceId = $(this).val();
+                if (provinceId !== 0) {
+                    if (!removed) {
+                        $('#provinceCre option')[0].remove();
+                        removed = !removed;
+                    }
+                    page.loadData.getAllDistrictsByProvinceId(provinceId);
+                }
+            })
+        }
+
+        page.loadData.getAllDistrictsByProvinceId = (provinceId) => {
+            $.ajax({
+                type: "GET",
+                url: "https://vapi.vnappmob.com/api/province/district/" + provinceId
+            })
+                .done((data) => {
+
+                    $('#districtCre').empty();
+
+                    $.each(data.results, (i, item) => {
+                        let str = `<option value ='${item.district_id}'>${item.district_name}</option>`;
+                        $('#districtCre').append(str);
+                    })
+                    let str = `<option value="0" selected>-- Please selected --</option>`;
+                    $('#districtCre').prepend(str);
+
+                    page.commands.addEventChangeDistrict();
+
+                })
+                .fail((error) => {
+                    Swal.fire({
+                        position: 'center',
+                        icon: 'error',
+                        title: "Can't get all provinces"
+                    })
+                })
+        }
+
+        page.commands.addEventChangeDistrict = () => {
+            let removed = false;
+
+            $('#districtCre').on('change', function () {
+                let districtId = $(this).val();
+                if (districtId !== 0) {
+                    if (!removed) {
+                        $('#districtCre option')[0].remove();
+                        removed = !removed;
+                    }
+                    page.loadData.getAllWardsByDistrictId(districtId);
+                }
+            })
+        }
+
+        page.loadData.getAllWardsByDistrictId = (districtId) => {
+            $.ajax({
+                type: "GET",
+                url: "https://vapi.vnappmob.com/api/province/ward/" + districtId
+            })
+                .done((data) => {
+
+                    $('#wardCre').empty();
+
+                    $.each(data.results, (i, item) => {
+                        let str = `<option value ='${item.ward_id}'>${item.ward_name}</option>`;
+                        $('#wardCre').append(str);
+                    })
+                    let str = `<option value="0" selected>-- Please selected --</option>`;
+                    $('#wardCre').prepend(str);
+
+                })
+                .fail((error) => {
+                    Swal.fire({
+                        position: 'center',
+                        icon: 'error',
+                        title: "Can't get all provinces"
+                    })
+                })
+        }
 
         page.commands.doCreate = () => {
             let fullName = $('#fullNameCre').val();
             let email = $('#emailCre').val();
             let phone = $('#phoneCre').val();
+            let provinceId = $('#provinceCre').val;
+            let provinceName = $('#provinceCre').find('option:selected').text();
+            let districtId = $('#districtCre').val();
+            let districtName = $('#districtCre').find('option:selected').text();
+            let wardId = $("#wardCre").val();
+            let wardName = $("#wardCre").find("option:selected").text();
             let address = $('#addressCre').val();
             let balance = 0;
             let deleted = 0;
+            let locationRegion = {
+                provinceId,
+                provinceName,
+                districtId,
+                districtName,
+                wardId,
+                wardName,
+                address
+            }
 
-            let obj = {
+            let customer = {
                 fullName,
                 email,
                 phone,
-                address,
+                locationRegion,
                 balance,
                 deleted
             }
-            console.log(obj);
+            console.log(customer);
             $.ajax({
                 headers: {
                     'accept': 'application/json',
@@ -384,9 +529,12 @@
                 },
                 type: 'POST',
                 url: page.urls.doCreate,
-                data: JSON.stringify(obj)
+                data: JSON.stringify(customer)
             })
                 .done((data) => {
+
+                     customer = data;
+                     $("#modalCreate").modal("hide");
                     let str = renderCustomer(data);
                     $('table tbody').prepend(str);
 
@@ -397,7 +545,7 @@
                         showConfirmButton: false,
                         timer: 2000
                     })
-                    $("#modalCreate").modal("hide");
+                    
                 })
                 .fail((error) => {
                     Swal.fire({
@@ -538,7 +686,7 @@
                         addEventDepositClick();
                         addEventTransferClick();
                     });
-                    
+
 
                     Swal.fire({
                         position: 'center',
@@ -622,7 +770,7 @@
                 })
         }
 
-        page.commands.decrementBalance = (customerId, customerObj) =>{
+        page.commands.decrementBalance = (customerId, customerObj) => {
             return $.ajax({
                 headers: {
                     'accept': 'application/json',
@@ -632,23 +780,23 @@
                 url: page.urls.decrementBalance + '/' + customerId,
                 data: JSON.stringify(customerObj)
             })
-            .fail((error) => {
-                console.log(error);
-            })
+                .fail((error) => {
+                    console.log(error);
+                })
         }
 
-        page.commands.addEventChangeTransferAmount = () =>{
+        page.commands.addEventChangeTransferAmount = () => {
             let transferAmountElem = page.dialogs.elements.transferAmountTrf;
-            transferAmountElem.on('input', function(){
+            transferAmountElem.on('input', function () {
 
-                let transferAmount =+transferAmountElem.val();
+                let transferAmount = +transferAmountElem.val();
                 let fees = 10;
-                let feesAmount = transferAmount *fees /100;
+                let feesAmount = transferAmount * fees / 100;
                 let transactionAmount = transferAmount + feesAmount;
                 page.dialogs.elements.transactionAmountTrf.val(transactionAmount);
             })
         }
-       
+
         page.elements.btnUpdate.on('click', () => {
 
             let fullName = $('#fullNameUp').val();
@@ -704,37 +852,40 @@
             })
         })
 
-        function renderCustomer(obj) {
+        function renderCustomer(item) {
             return `
-                <tr id="tr_${obj.id}">
-                    <td class="text-center">${obj.id}</td>
-                    <td class="text-center">${obj.fullName}</td>
-                    <td class="text-center">${obj.email}</td>
-                    <td class="text-center">${obj.phone}</td>
-                    <td class="text-center">${obj.address}</td>
-                    <td class="text-end">${obj.balance}</td>
+                <tr id="tr_${item.id}">
+                    <td class="text-center">${item.id}</td>
+                    <td class="text-center">${item.fullName}</td>
+                    <td class="text-center">${item.email}</td>
+                    <td class="text-center">${item.phone}</td>
+                    <td class="text-center">${item.locationRegion.address}</td>
+                    <td>${item.locationRegion.provinceName}</td>
+                    <td>${item.locationRegion.districtName}</td>
+                    <td>${item.locationRegion.wardName}</td>
+                    <td class="text-end">${item.balance}</td>
                     <td style ="width : 2%">
-                        <button class="btn btn-outline-secondary update" data-id="${obj.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Update" id="btnUpdate">
+                        <button class="btn btn-outline-secondary update" data-id="${item.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Update" id="btnUpdate">
                             <i class="fas fa-edit"></i>
                         </button>
                     </td>
                     <td style ="width : 2%">
-                        <button class="btn btn-outline-success deposit" data-id="${obj.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Deposit">
+                        <button class="btn btn-outline-success deposit" data-id="${item.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Deposit">
                             <i class="fas fa-plus"></i>
                         </button>
                     </td>
                     <td style ="width : 2%">
-                        <button class="btn btn-outline-warning withdraw"  data-id="${obj.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="WithDraw">
+                        <button class="btn btn-outline-warning withdraw"  data-id="${item.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="WithDraw">
                             <i class="fas fa-minus"></i>
                         </button>
                     </td>
                     <td style ="width : 2%">
-                        <button class="btn btn-outline-primary transfer" data-sender-id="${obj.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Transfer">
+                        <button class="btn btn-outline-primary transfer" data-sender-id="${item.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Transfer">
                             <i class="fas fa-exchange-alt"></i>
                         </button>
                     </td>
                     <td style ="width : 2%">
-                        <button class="btn btn-outline-danger delete" data-id="${obj.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Suppened">
+                        <button class="btn btn-outline-danger delete" data-id="${item.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Suppened">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -903,17 +1054,19 @@
 
         page.commands.loadData = () => {
             page.loadData.getAllCustomers();
+            page.loadData.getAllProvinces();
+
         }
 
         page.initializeControlEvent = () => {
             page.elements.btnCreate.on('click', function () {
                 page.commands.doCreate();
             });
-           
+
             page.elements.btnDeposit.on('click', function () {
                 page.commands.doDeposit();
             });
-           
+
             page.elements.btnTransfer.on('click', function () {
                 page.commands.doTransfer();
             });
