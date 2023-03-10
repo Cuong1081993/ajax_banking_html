@@ -357,7 +357,16 @@
         page.elements.btnDeposit = $('#btnDeposit');
         page.elements.btnTransfer = $('#btnTransfer');
 
-        page.elements.modalCreate = $('#modalCreate');
+        page.dialogs.elements.modalCreate = $('#modalCreate');
+        page.dialogs.elements.fullNameCre = $('#fulNameCre');
+        page.dialogs.elements.phoneCre= $('#phoneCre');
+        page.dialogs.elements.emailCre = $('#emailCre');
+        page.dialogs.elements.provinceCre = $('#provinceCre');
+        page.dialogs.elements.districtCre = $('#districtCre');
+        page.dialogs.elements.wardCre = $('#wardCre');
+        page.dialogs.elements.addressCre = $('#addressCre');
+        
+        
 
         page.dialogs.elements.modalUpdate = $('#modalUpdate');
         page.dialogs.elements.modalDeposit = $('#modalDeposit');
@@ -404,7 +413,7 @@
         page.commands.addEventChangeProvince = () => {
             let removed = false;
 
-            $('#provinceCre').on('change', function () {
+            page.dialogs.elements.provinceCre.on('change', function () {
                 $('#wardCre').empty();
 
                 let str = `<option value="0" selected>-- Please selected --</option>`;
@@ -961,13 +970,13 @@
                             })
                                 .done((data) => {
                                     $('#tr_' + customerId).remove();
-
+                                     
                                     Swal.fire({
                                         position: 'center',
                                         icon: 'success',
                                         title: 'Delete customer successful',
                                         showConfirmButton: false,
-                                        timer: 1500
+                                        timer: 50000
                                     })
                                 })
                                 .fail((error) => {
