@@ -297,8 +297,9 @@
                 findCustomerById: AppBase.API_CUSTOMER,
                 doCreate: AppBase.API_CUSTOMER,
                 insertDeposit: AppBase.API_DEPOSIT,
+                insertTransfer: AppBase.API_TRANSFER,
                 incrementBalance: AppBase.API_CUSTOMER,
-                getAllRecipientsWithOutSender: AppBase.API_CUSTOMER + '/get-all-recipients-with-out-sender'
+                decrementBalance : AppBase.API_CUSTOMER
             },
             elements: {},
             loadData: {},
@@ -323,6 +324,7 @@
                     addEventUpdateClick();
                     addEventDeleteClick();
                     addEventDepositClick();
+                    addEventTransferClick();
 
 
                 })
@@ -433,11 +435,12 @@
                         $('.update').off('click');
                         $('.delete').off('click');
                         $('.deposit').off('click');
+                        $('.transfer').off('click');
 
                         addEventUpdateClick();
                         addEventDeleteClick();
                         addEventDepositClick();
-
+                        addEventTransferClick();
                         Swal.fire({
                             position: 'center',
                             icon: 'success',
@@ -445,6 +448,7 @@
                             showConfirmButton: false,
                             timer: 2000
                         })
+                        $('#transactionAmountDep').val('');
                         $('#modalDeposit').modal('hide');
                     })
                 })
@@ -469,6 +473,7 @@
                 return;
             }
 
+
             page.loadData.findCustomerById(senderId).then((sender) => {
 
                 let currentSenderBalance = sender.balance;
@@ -483,7 +488,7 @@
                     return;
                 }
                 page.loadData.findCustomerById(recipientId).then((recipient) => {
-
+                    console.log(recipient);
                     let trsObj = {
                         senderId,
                         recipientId,
@@ -502,6 +507,15 @@
                         let currentSenderRow = $('#tr_' + senderId);
                         let newSenderRow = renderCustomer(sender);
                         currentSenderRow.replaceWith(newSenderRow);
+                        $('.update').off('click');
+                        $('.delete').off('click');
+                        $('.deposit').off('click');
+                        $('.transfer').off('click');
+
+                        addEventUpdateClick();
+                        addEventDeleteClick();
+                        addEventDepositClick();
+                        addEventTransferClick();
                     });
 
                     let currentRecipientBalance = recipient.balance;
@@ -514,14 +528,26 @@
                         let currentRecipientRow = $('#tr_' + recipientId);
                         let newRecipientRow = renderCustomer(recipient);
                         currentRecipientRow.replaceWith(newRecipientRow);
+                        $('.update').off('click');
+                        $('.delete').off('click');
+                        $('.deposit').off('click');
+                        $('.transfer').off('click');
+
+                        addEventUpdateClick();
+                        addEventDeleteClick();
+                        addEventDepositClick();
+                        addEventTransferClick();
                     });
+                    
+
                     Swal.fire({
-                        position: 'top-end',
+                        position: 'center',
                         icon: 'success',
                         title: 'Transfer has been saved',
                         showConfirmButton: false,
                         timer: 2000
                     })
+                    $('#transactionAmountTrf').val('');
                     page.dialogs.elements.modalTransfer.modal('hide');
                 })
                     .catch(() => {
@@ -541,7 +567,8 @@
                         })
                     })
             })
-        
+        }
+
         page.commands.insertDeposit = (depObj) => {
             return $.ajax({
                 headers: {
@@ -560,6 +587,26 @@
                     })
                 })
         }
+
+        page.commands.insertTransfer = (trsObj) => {
+            return $.ajax({
+                headers: {
+                    'accept': 'application/json',
+                    'content-type': 'application/json'
+                },
+                type: 'POST',
+                url: page.urls.insertTransfer,
+                data: JSON.stringify(trsObj)
+            })
+                .fail((error) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Transfer  went wrong !',
+                    })
+                })
+        }
+
         page.commands.incrementBalance = (customerId, customerObj) => {
             return $.ajax({
                 headers: {
@@ -575,7 +622,33 @@
                 })
         }
 
+        page.commands.decrementBalance = (customerId, customerObj) =>{
+            return $.ajax({
+                headers: {
+                    'accept': 'application/json',
+                    'content-type': 'application/json'
+                },
+                type: 'PATCH',
+                url: page.urls.decrementBalance + '/' + customerId,
+                data: JSON.stringify(customerObj)
+            })
+            .fail((error) => {
+                console.log(error);
+            })
+        }
 
+        page.commands.addEventChangeTransferAmount = () =>{
+            let transferAmountElem = page.dialogs.elements.transferAmountTrf;
+            transferAmountElem.on('input', function(){
+
+                let transferAmount =+transferAmountElem.val();
+                let fees = 10;
+                let feesAmount = transferAmount *fees /100;
+                let transactionAmount = transferAmount + feesAmount;
+                page.dialogs.elements.transactionAmountTrf.val(transactionAmount);
+            })
+        }
+       
         page.elements.btnUpdate.on('click', () => {
 
             let fullName = $('#fullNameUp').val();
@@ -656,7 +729,7 @@
                         </button>
                     </td>
                     <td style ="width : 2%">
-                        <button class="btn btn-outline-primary transfer" data-id="${obj.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Transfer">
+                        <button class="btn btn-outline-primary transfer" data-sender-id="${obj.id}" data-bs-toggle="tooltip" data-bs-placement="top" title="Transfer">
                             <i class="fas fa-exchange-alt"></i>
                         </button>
                     </td>
@@ -782,7 +855,7 @@
 
         function addEventTransferClick() {
             $('.transfer').on('click', function () {
-                let senderId = $(this).data(sender - id);
+                let senderId = $(this).data('sender-id');
                 page.loadData.findCustomerById(senderId).then((sender) => {
 
                     page.loadData.getAllRecipients(senderId);
@@ -791,7 +864,7 @@
                     page.dialogs.elements.senderPhone.val(sender.phone);
                     page.dialogs.elements.senderBalance.val(sender.balance);
 
-                    page.dialogs.modalTransfer.modal('show');
+                    page.dialogs.elements.modalTransfer.modal('show');
                 })
             })
         }
@@ -801,6 +874,7 @@
             <option value="${obj.id}">(${obj.id}) -${obj.fullName}</option>
             `
         }
+
         $("#modalCreateCustomer").on("hidden.bs.modal", () => {
             $("#frmCreate")[0].reset();
         })
@@ -815,7 +889,7 @@
                 url: page.urls.getAllCustomers + '?id_ne=' + senderId
             })
                 .done((data) => {
-                    page.dialogs.elements.recipientTrf.emty();
+                    page.dialogs.elements.recipientTrf.empty();
 
                     $.each(data, (i, item) => {
                         let str = renderRecipientOption(item);
@@ -826,20 +900,25 @@
                     console.log(error);
                 })
         }
+
         page.commands.loadData = () => {
             page.loadData.getAllCustomers();
         }
+
         page.initializeControlEvent = () => {
             page.elements.btnCreate.on('click', function () {
                 page.commands.doCreate();
             });
+           
             page.elements.btnDeposit.on('click', function () {
                 page.commands.doDeposit();
             });
+           
             page.elements.btnTransfer.on('click', function () {
                 page.commands.doTransfer();
             });
 
+            page.commands.addEventChangeTransferAmount();
         }
 
         $(() => {
